@@ -31,15 +31,26 @@ export function minifyHtml(minifyOptions: MinifyOptions | boolean = true): Plugi
       };
 
       const { root, build } = config;
-      const { outDir } = build;
+      const { outDir, rollupOptions } = build;
+      const { input } = rollupOptions;
       const indexHtmlPath = path.resolve(root, outDir, 'index.html');
-      if (!fs.existsSync(indexHtmlPath)) {
-        console.log('no such file: ' + indexHtmlPath);
-        return;
+
+      const writeHtml = (htmlPath: string)=> {
+        if (!fs.existsSync(htmlPath)) {
+          console.log('no such file: ' + htmlPath);
+          return;
+        }
+        let processHtml = fs.readFileSync(htmlPath, 'utf-8');
+        processHtml = minify(processHtml, defaultMinifyOptions);
+        fs.writeFile(htmlPath, processHtml);
       }
-      let processHtml = fs.readFileSync(indexHtmlPath, 'utf-8');
-      processHtml = minify(processHtml, defaultMinifyOptions);
-      fs.writeFile(indexHtmlPath, processHtml);
+
+      if(typeof input === 'string') {
+        writeHtml(input.replace(root, root + '/' + outDir));
+      } else {
+        const htmlPaths = Array.isArray(input) ? [...input] : typeof input === 'object' ? [...Object.values(input)] : [indexHtmlPath];
+        htmlPaths.forEach((path)=> writeHtml(path.replace(root, root + '/' + outDir)));
+      }
     },
   };
 }
